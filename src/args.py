@@ -3,7 +3,7 @@ import sys
 import yaml
 import argparse
 
-from utils import printt
+from utils import printt, csv_has_manifest_header, materialize_manifest_for_csv
 
 
 def get_parser():
@@ -21,7 +21,7 @@ def get_parser():
                         type=str, default="args.yaml",
                         help="Dump arguments for reproducibility")
     parser.add_argument("--results_file",
-                        type=str, default="results.pkl",
+                        type=str, default="results.npy",
                         help="Save outputs here")
 
     # ======== data ========
@@ -160,11 +160,18 @@ def get_parser():
 
 def parse_args():
     args = get_parser().parse_args()
-    process_args(args)
+
+    cli_arg_keys = set()
+    for raw_arg in sys.argv[1:]:
+        if raw_arg.startswith("--"):
+            key = raw_arg[2:].split("=")[0].replace("-", "_")
+            cli_arg_keys.add(key)
+
+    process_args(args, cli_arg_keys)
     return args
 
 
-def process_args(args):
+def process_args(args, cli_arg_keys=None):
     # used for dispatcher only (bash script auto-formats to config)
     ## process run_name
     if args.run_name is None:
@@ -175,11 +182,22 @@ def process_args(args):
     if args.config_file is not None:
         with open(args.config_file) as f:
             config = yaml.safe_load(f)
-        override_args(args, config)
+        override_args(args, config, cli_arg_keys)
 
     # prepend output root
     args.args_file = os.path.join(args.save_path, args.args_file)
     args.results_file  = os.path.join(args.save_path, args.results_file)
+
+    # Allow users to point --data_file at a raw CSV matrix. When the file does
+    # not contain the standard manifest columns we materialise a temporary
+    # manifest inside the save directory and reroute the data loader to it.
+    if args.data_file and args.data_file.lower().endswith('.csv'):
+        if not csv_has_manifest_header(args.data_file):
+            os.makedirs(args.save_path, exist_ok=True)
+            manifest = materialize_manifest_for_csv(
+                args.data_file, os.path.join(args.save_path, "converted_csv"), args.algorithm
+            )
+            args.data_file = manifest
 
     # finally load all saved parameters
     if len(args.checkpoint_path) > 0:
@@ -201,17 +219,19 @@ def process_args(args):
         for k in k_to_skip:
             if k in config:
                 del config[k]
-        override_args(args, config)
+        override_args(args, config, cli_arg_keys)
 
 
-def override_args(args, config):
+def override_args(args, config, cli_arg_keys=None):
     """
         Recursively copy over config to args
     """
     for k,v in config.items():
         if type(v) is dict:
-            override_args(args, v)
+            override_args(args, v, cli_arg_keys)
         else:
+            if cli_arg_keys is not None and k in cli_arg_keys:
+                continue
             args.__dict__[k] = v
     return args
 

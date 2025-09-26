@@ -10,7 +10,7 @@
      num_workers: 30
      accumulate_batches: 1
      log_frequency: 10
-     results_file: "results_baseline_fci.pkl"
+     results_file: "results_baseline_fci.npy"
  model:
      algorithm: "fci"
      model: "baseline"

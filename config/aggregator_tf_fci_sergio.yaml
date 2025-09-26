@@ -12,7 +12,7 @@
      num_workers: 10
      accumulate_batches: 1
      log_frequency: 10
-     results_file: "results_fci_sergio_reproduce.pkl"
+     results_file: "results_fci_sergio_reproduce.npy"
  model:
      algorithm: "fci"
      model: "aggregator"
