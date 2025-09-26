@@ -11,7 +11,7 @@
      num_workers: 40
      accumulate_batches: 1
      log_frequency: 10
-     results_file: "results_fci.pkl"
+     results_file: "results_fci.npy"
      use_learned_sampler: False
  model:
      algorithm: "fci"

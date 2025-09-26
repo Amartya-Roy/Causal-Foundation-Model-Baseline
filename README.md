@@ -42,14 +42,20 @@ We ran training across two A6000 GPUs and inference on one V100 GPU.
 
 ## Quickstart
 
-To run inference using our pretrained models, please modify the data and model paths in
-`src/inference.sh`, specify the appropriate config file, and run:
+To run inference using our pretrained models, please modify the data and model
+paths in `src/inference.sh`, specify the appropriate config file, and run:
 ```
 ./src/inference.sh
 ```
 When benchmarking runtimes, it is assumed that `batch_size=1`.
 If you do not need runtimes, you may increase `batch_size` for faster
 completion.
+
+`DATA_FILE` can now point directly to a raw observational CSV (one row per
+sample, one column per variable). The script will convert it into the manifest
+format expected by SEA, writing the intermediate `.npy` tensors under
+`${SAVE_PATH}/converted_csv/`. Existing manifest CSVs continue to work without
+modification.
 
 To train your own SEA, please modify the data and model paths in
 `src/train.sh`, specify the appropriate config file, change the wandb
@@ -91,8 +97,10 @@ Our datasets follow the [DCDI](https://github.com/slachapelle/dcdi) data format.
 
 ## Results
 
-Our outputs take the form of a pickled `dict`. Example parsing code is provided
-in `examples/SEA-results.ipynb`.
+Our outputs are stored as `.npy` files containing the Python dictionaries used
+during evaluation (we rely on `numpy.save(..., allow_pickle=True)`). You can
+load them via `numpy.load(path, allow_pickle=True).item()`. Example parsing code
+is provided in `examples/SEA-results.ipynb`.
 
 We have uploaded the predictions of all traditional baselines and our models
 to the [Zenodo archive](https://zenodo.org/records/10611036) as well.
